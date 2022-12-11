@@ -20,7 +20,7 @@ var users = []User{
 }
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method == "GET" {
 			b, err := json.Marshal(users)
