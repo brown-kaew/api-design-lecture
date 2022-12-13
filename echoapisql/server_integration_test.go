@@ -48,7 +48,8 @@ func TestGetUserByID(t *testing.T) {
 	c := seedUser(t)
 
 	var latest User
-	res := request(http.MethodGet, uri("users", strconv.Itoa(c.ID)), nil)
+	var id string = strconv.Itoa(c.ID)
+	res := request(http.MethodGet, uri("users", id), nil)
 	err := res.Decode(&latest)
 
 	assert.Nil(t, err)
@@ -56,6 +57,14 @@ func TestGetUserByID(t *testing.T) {
 	assert.Equal(t, c.ID, latest.ID)
 	assert.NotEmpty(t, latest.Name)
 	assert.NotEmpty(t, latest.Age)
+}
+
+func TestUpdateUserByID(t *testing.T) {
+	t.Skip("TODO: implement me")
+}
+
+func TestDeleteUserByID(t *testing.T) {
+	t.Skip("TODO: implement me")
 }
 
 func seedUser(t *testing.T) User {
@@ -69,14 +78,6 @@ func seedUser(t *testing.T) User {
 		t.Fatal("can't create uomer:", err)
 	}
 	return c
-}
-
-func TestUpdateUserByID(t *testing.T) {
-	t.Skip("TODO: implement me")
-}
-
-func TestDeleteUserByID(t *testing.T) {
-	t.Skip("TODO: implement me")
 }
 
 func uri(paths ...string) string {
