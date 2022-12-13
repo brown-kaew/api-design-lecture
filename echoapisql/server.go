@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -29,12 +30,12 @@ func healthHandler(c echo.Context) error {
 func getUsersHandler(c echo.Context) error {
 	stmt, err := db.Prepare("SELECT id, name, age FROM users")
 	if err != nil {
-		log.Fatal("can't prepare query all users statment", err)
+		return c.JSON(http.StatusInternalServerError, Error{Message: "can't prepare query all users statment:" + err.Error()})
 	}
 
 	rows, err := stmt.Query()
 	if err != nil {
-		log.Fatal("can't query all users", err)
+		return c.JSON(http.StatusInternalServerError, Error{Message: "can't query all users:" + err.Error()})
 	}
 
 	var users = []User{}
@@ -42,7 +43,7 @@ func getUsersHandler(c echo.Context) error {
 		var user User
 		err := rows.Scan(&user.ID, &user.Name, &user.Age)
 		if err != nil {
-			log.Fatal("can't Scan row into variable", err)
+			return c.JSON(http.StatusInternalServerError, Error{Message: "can't scan user:" + err.Error()})
 		}
 		users = append(users, user)
 	}
@@ -52,24 +53,23 @@ func getUsersHandler(c echo.Context) error {
 func getUserHandler(c echo.Context) error {
 	stmt, err := db.Prepare("SELECT id, name, age FROM users WHERE id=$1")
 	if err != nil {
-		log.Fatal("can't prepare query all users statment", err)
-	}
-	id := c.Param("id")
-	rows, err := stmt.Query(id)
-	if err != nil {
-		log.Fatal("can't query user id=%s", id, err)
+		return c.JSON(http.StatusInternalServerError, Error{Message: "can't prepare query all users statment"})
 	}
 
-	var users = []User{}
-	for rows.Next() {
-		var user User
-		err := rows.Scan(&user.ID, &user.Name, &user.Age)
-		if err != nil {
-			log.Fatal("can't Scan row into variable", err)
-		}
-		users = append(users, user)
+	id := c.Param("id")
+	row := stmt.QueryRow(id)
+
+	var user User
+	err = row.Scan(&user.ID, &user.Name, &user.Age)
+
+	switch err {
+	case sql.ErrNoRows:
+		return c.JSON(http.StatusNotFound, "user not found")
+	case nil:
+		return c.JSON(http.StatusOK, user)
+	default:
+		return c.JSON(http.StatusInternalServerError, Error{Message: "can't Scan row into variable"})
 	}
-	return c.JSON(http.StatusOK, users)
 }
 
 func createUserHandler(c echo.Context) error {
@@ -83,7 +83,7 @@ func createUserHandler(c echo.Context) error {
 	row := db.QueryRow("INSERT INTO users (name, age) values ($1, $2) RETURNING id", u.Name, u.Age)
 
 	if err := row.Scan(&u.ID); err != nil {
-		log.Fatal("can not insert data", err)
+		return c.JSON(http.StatusInternalServerError, Error{Message: err.Error()})
 	}
 	return c.JSON(http.StatusCreated, u)
 }
@@ -97,7 +97,7 @@ func authValidator(u, p string, c echo.Context) (bool, error) {
 }
 
 func main() {
-	url := "postgres://wvbxvjvp:8iC9SoaN_pUBkXWIcVw5ODwtVl6t9unQ@tiny.db.elephantsql.com/wvbxvjvp"
+	url := os.Getenv("DATABASE_URL")
 	var err error
 	db, err = sql.Open("postgres", url)
 	if err != nil {
