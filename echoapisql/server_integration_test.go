@@ -60,11 +60,32 @@ func TestGetUserByID(t *testing.T) {
 }
 
 func TestUpdateUserByID(t *testing.T) {
-	t.Skip("TODO: implement me")
+	c := seedUser(t)
+	body := bytes.NewBufferString(`{
+		"name": "Nancy",
+		"age": 22
+	}`)
+
+	var latest User
+	var id string = strconv.Itoa(c.ID)
+	res := request(http.MethodPut, uri("users", id), body)
+	err := res.Decode(&latest)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, c.ID, latest.ID)
+	assert.Equal(t, "Nancy", latest.Name)
+	assert.Equal(t, 22, latest.Age)
 }
 
 func TestDeleteUserByID(t *testing.T) {
-	t.Skip("TODO: implement me")
+	// t.Skip("TODO: implement me")
+	c := seedUser(t)
+
+	var id string = strconv.Itoa(c.ID)
+	res := request(http.MethodDelete, uri("users", id), nil)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
 }
 
 func seedUser(t *testing.T) User {
