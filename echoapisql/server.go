@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -50,7 +51,7 @@ func getUsersHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, users)
 }
 
-func getUserHandler(c echo.Context) error {
+func getUserByIdHandler(c echo.Context) error {
 	stmt, err := db.Prepare("SELECT id, name, age FROM users WHERE id=$1")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, Error{Message: "can't prepare query all users statment"})
@@ -64,7 +65,7 @@ func getUserHandler(c echo.Context) error {
 
 	switch err {
 	case sql.ErrNoRows:
-		return c.JSON(http.StatusNotFound, "user not found")
+		return c.JSON(http.StatusNotFound, Error{Message: "user not found"})
 	case nil:
 		return c.JSON(http.StatusOK, user)
 	default:
@@ -86,6 +87,62 @@ func createUserHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, Error{Message: err.Error()})
 	}
 	return c.JSON(http.StatusCreated, u)
+}
+
+func updateUserByIdHandler(c echo.Context) error {
+	id := c.Param("id")
+	var u User
+	err := c.Bind(&u)
+	u.ID, err = strconv.Atoi(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: "invalid id"})
+	}
+
+	stmt, err := db.Prepare(`
+	UPDATE users 
+	SET 
+		name=$2,
+		age=$3
+	WHERE id=$1`)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Error{Message: "can't prepare query all users statment" + err.Error()})
+	}
+	var res sql.Result
+	res, err = stmt.Exec(id, u.Name, u.Age)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Error{Message: "can't update user " + err.Error()})
+	}
+
+	row, err := res.RowsAffected()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Error{Message: "can't update user " + err.Error()})
+	}
+
+	if row == 0 {
+		return c.JSON(http.StatusNotFound, Error{Message: "not found user"})
+	}
+	return c.JSON(http.StatusOK, u)
+}
+
+func deleteUserByIdHandler(c echo.Context) error {
+	id := c.Param("id")
+	deleteId, err := strconv.Atoi(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Error{Message: err.Error()})
+	}
+
+	stmt, err := db.Prepare("DELETE FROM users WHERE id=$1")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Error{Message: "can't prepare query all users statment" + err.Error()})
+	}
+
+	if _, err := stmt.Exec(deleteId); err != nil {
+		return c.JSON(http.StatusInternalServerError, Error{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, Error{Message: "deleted id: " + id})
 }
 
 func authValidator(u, p string, c echo.Context) (bool, error) {
@@ -120,8 +177,10 @@ func main() {
 	g.Use(middleware.BasicAuth(authValidator))
 
 	g.GET("/users", getUsersHandler)
-	g.GET("/users/:id", getUserHandler)
+	g.GET("/users/:id", getUserByIdHandler)
 	g.POST("/users", createUserHandler)
+	g.PUT("/users/:id", updateUserByIdHandler)
+	g.DELETE("/users/:id", deleteUserByIdHandler)
 
 	log.Println("Server started ad : 8080")
 	log.Fatal(e.Start(":8080"))

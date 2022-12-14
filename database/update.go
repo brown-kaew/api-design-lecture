@@ -25,7 +25,7 @@ func main() {
 	updateId := 2
 	newAge := 22
 	if _, err := stmt.Exec(updateId, newAge); err != nil {
-		log.Fatal("can't query all users", err)
+		log.Fatal("can't update user", err)
 	}
 
 	log.Println("updated")
