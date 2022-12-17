@@ -79,7 +79,6 @@ func TestUpdateUserByID(t *testing.T) {
 }
 
 func TestDeleteUserByID(t *testing.T) {
-	// t.Skip("TODO: implement me")
 	c := seedUser(t)
 
 	var id string = strconv.Itoa(c.ID)
