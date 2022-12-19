@@ -4,9 +4,13 @@ import (
 	"database/sql"
 	"log"
 	"os"
+
+	_ "github.com/lib/pq"
 )
 
-func InitDb() {
+var db *sql.DB
+
+func InitDb() *sql.DB {
 	url := os.Getenv("DATABASE_URL")
 	var err error
 	db, err = sql.Open("postgres", url)
@@ -18,4 +22,6 @@ func InitDb() {
 	if _, err := db.Exec(createTb); err != nil {
 		log.Fatal("can't create table", err)
 	}
+
+	return db
 }

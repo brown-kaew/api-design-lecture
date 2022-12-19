@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/brown-kaew/api-design-lecture/package/user"
 	"github.com/labstack/echo/v4"
@@ -23,7 +28,8 @@ func authValidator(u, p string, c echo.Context) (bool, error) {
 }
 
 func main() {
-	user.InitDb()
+	db := user.InitDb()
+	defer db.Close()
 
 	e := echo.New()
 	e.Use(middleware.Logger())
@@ -40,6 +46,21 @@ func main() {
 	g.PUT("/users/:id", user.UpdateUserByIdHandler)
 	g.DELETE("/users/:id", user.DeleteUserByIdHandler)
 
-	log.Println("Server started ad : 8080")
-	log.Fatal(e.Start(":8080"))
+	go func() {
+		if err := e.Start(":8080"); err != nil && err != http.ErrServerClosed { // Start server
+			e.Logger.Fatal("shutting down the server")
+		}
+		log.Println("Server started at : 8080")
+	}()
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+	<-shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Fatal(err)
+	}
+
+	e.Logger.Info("Server stopped")
 }
