@@ -9,10 +9,7 @@ import (
 )
 
 func main() {
-	// url := "postgres://wvbxvjvp:8iC9SoaN_pUBkXWIcVw5ODwtVl6t9unQ@tiny.db.elephantsql.com/wvbxvjvp"
 	url := os.Getenv("DATABASE_URL")
-	// DATABASE_URL=postgres://wvbxvjvp:8iC9SoaN_pUBkXWIcVw5ODwtVl6t9unQ@tiny.db.elephantsql.com/wvbxvjvp go run insert.go
-
 	db, err := sql.Open("postgres", url)
 	if err != nil {
 		log.Fatal("connect to database error", err)
