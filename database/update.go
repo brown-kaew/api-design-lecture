@@ -3,13 +3,13 @@ package main
 import (
 	"database/sql"
 	"log"
+	"os"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	url := "postgres://wvbxvjvp:8iC9SoaN_pUBkXWIcVw5ODwtVl6t9unQ@tiny.db.elephantsql.com/wvbxvjvp"
-
+	url := os.Getenv("DATABASE_URL")
 	db, err := sql.Open("postgres", url)
 
 	if err != nil {
